@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <title>Chữ và Ảnh Rơi Thẳng</title>
+  <style>
+    body, html {
+      margin: 0; padding: 0; height: 100%;
+      background: #001020; /* xanh đen */
+      overflow: hidden;
+      font-family: Arial, sans-serif;
+      color: white;
+      position: relative;
+    }
+
+    #stars-canvas {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 0;
+      pointer-events: none;
+      background: transparent;
+    }
+
+    #falling-container {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      perspective: 800px;
+      background: transparent;
+      z-index: 1;
+    }
+
+    .falling-item {
+      position: absolute;
+      top: -50px;
+      user-select: none;
+      pointer-events: none;
+      animation-timing-function: linear;
+    }
+
+    .falling-text {
+      font-size: 28px;
+      font-weight: bold;
+      color: hotpink;
+      text-shadow:
+         0 0 5px hotpink,
+         0 0 10px hotpink,
+         0 0 15px hotpink;
+    }
+
+    .falling-image {
+      width: 40px;
+      height: 40px;
+      object-fit: contain;
+      filter: drop-shadow(0 0 5px hotpink);
+    }
+
+    #back-btn {
+      position: fixed;
+      top: 10px;
+      left: 10px;
+      z-index: 9999;
+      background: hotpink;
+      border: none;
+      padding: 10px 15px;
+      border-radius: 10px;
+      cursor: pointer;
+      font-weight: bold;
+      color: black;
+      box-shadow: 0 0 10px hotpink;
+      transition: background-color 0.3s ease;
+    }
+    #back-btn:hover {
+      background-color: #ff85c1;
+    }
+
+    @keyframes fallStraight {
+      0% {
+        top: -50px;
+        opacity: 1;
+      }
+      100% {
+        top: 110vh;
+        opacity: 0;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<canvas id="stars-canvas"></canvas>
+
+<button id="back-btn" onclick="window.location.href='index.html'">Trang Chủ</button>
+
+<div id="falling-container"></div>
+
+<script>
+  // Hiệu ứng sao lấp lánh trên canvas
+  const canvas = document.getElementById('stars-canvas');
+  const ctx = canvas.getContext('2d');
+  let stars = [];
+  const numStars = 150;
+
+  function resizeCanvas() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+  }
+  window.addEventListener('resize', resizeCanvas);
+  resizeCanvas();
+
+  function initStars() {
+    stars = [];
+    for(let i=0; i<numStars; i++) {
+      stars.push({
+        x: Math.random() * canvas.width,
+        y: Math.random() * canvas.height,
+        radius: Math.random() * 1.2 + 0.2,
+        alpha: Math.random(),
+        delta: (Math.random() * 0.02) + 0.005
+      });
+    }
+  }
+
+  function drawStars() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    for(let star of stars) {
+      ctx.beginPath();
+      ctx.arc(star.x, star.y, star.radius, 0, 2*Math.PI);
+      ctx.fillStyle = `rgba(255, 255, 255, ${star.alpha})`;
+      ctx.fill();
+      star.alpha += star.delta;
+      if(star.alpha <= 0) {
+        star.alpha = 0;
+        star.delta = -star.delta;
+      } else if(star.alpha >= 1) {
+        star.alpha = 1;
+        star.delta = -star.delta;
+      }
+    }
+    requestAnimationFrame(drawStars);
+  }
+
+  initStars();
+  drawStars();
+
+  // Phần chữ và ảnh rơi
+  const fallingText = localStorage.getItem('fallingText') || 'Chữ Rơi Hotpink';
+  const fallingColor = localStorage.getItem('fallingColor') || '#ff69b4';
+  const fallingImageSrc = localStorage.getItem('fallingImage') || null;
+
+  const container = document.getElementById('falling-container');
+  const width = window.innerWidth;
+
+  const itemCount = 30;
+
+  function random(min, max) {
+    return Math.random() * (max - min) + min;
+  }
+
+  function createFallingText(xPos) {
+    const el = document.createElement('div');
+    el.className = 'falling-item falling-text';
+    el.textContent = fallingText;
+    el.style.color = fallingColor;
+    el.style.left = xPos + 'px';
+    el.style.top = '-50px';
+    el.style.animation = `fallStraight ${random(3, 7)}s linear forwards`;  // nhanh hơn
+    el.style.fontSize = `${random(20, 36)}px`;
+    return el;
+  }
+
+  function createFallingImage(xPos) {
+    const img = document.createElement('img');
+    img.className = 'falling-item falling-image';
+    img.style.left = xPos + 'px';
+    img.style.top = '-50px';
+    img.style.animation = `fallStraight ${random(3, 7)}s linear forwards`;  // nhanh hơn
+    if (fallingImageSrc) {
+      img.src = fallingImageSrc;
+    } else {
+      img.src = 'https://upload.wikimedia.org/wikipedia/commons/thumb/4/44/Star_symbol.svg/120px-Star_symbol.svg.png';
+    }
+    return img;
+  }
+
+  for(let i = 0; i < itemCount; i++) {
+    const x = random(0, width - 40);
+    let item;
+    if(Math.random() < 0.5) {
+      item = createFallingText(x);
+    } else {
+      item = createFallingImage(x);
+    }
+    item.style.animationDelay = random(0, 7) + 's';
+    container.appendChild(item);
+
+    item.addEventListener('animationend', () => {
+      container.removeChild(item);
+      const newX = random(0, width - 40);
+      let newItem;
+      if(Math.random() < 0.5) {
+        newItem = createFallingText(newX);
+      } else {
+        newItem = createFallingImage(newX);
+      }
+      newItem.style.animationDelay = '0s';
+      container.appendChild(newItem);
+      newItem.addEventListener('animationend', () => {
+        container.removeChild(newItem);
+      });
+    });
+  }
+</script>
+
+</body>
+</html>
+
